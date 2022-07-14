@@ -1,0 +1,12 @@
+---
+- name: Create filesystem on disk
+  filesystem:
+    fstype: '{{filesystem}}'
+    dev: '{{disk}}'
+
+- name: mounting the disk
+  mount:
+    path: '{{destination}}'
+    src: '{{disk}}'
+    fstype: '{{filesystem}}'
+    state: mounted

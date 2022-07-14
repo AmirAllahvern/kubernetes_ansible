@@ -1,0 +1,12 @@
+---
+# vars file for database
+
+repo_name: bitnami
+repo_url: https://charts.bitnami.com/bitnami
+
+kube_context: arvan
+namespace: database
+
+release_name: mariadb_galera
+chart_name: bitnami/mariadb-galera
+values_path: roles/database/files/values.yml

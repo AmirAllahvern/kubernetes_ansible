@@ -1,0 +1,105 @@
+---
+
+- name: kubeadm init for a master
+  shell: "kubeadm init --control-plane-endpoint='{{groups['loadbalancer'][0]}}:6443' --apiserver-advertise-address={{ groups['master'][0] }} --upload-certs --pod-network-cidr=10.244.0.0/16 --cri-socket /run/containerd/containerd.sock| cat"
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+
+- name: kubeadm init to get Certificate key
+  shell: "kubeadm init phase upload-certs --upload-certs"
+  when: ansible_default_ipv4.address == groups['master'][0]
+  register: certificateKey
+
+
+- name: making the .kube directory
+  file:
+    path: "/root/.kube"
+    state: directory
+    mode: '0755'
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: copying /etc/kubernetes/admin.conf $HOME/.kube/config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/root/.kube/config"
+    mode: '0755'
+    owner: root
+    group: root
+    remote_src: yes
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: apply network plugin
+  shell: kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+  when:  ansible_default_ipv4.address == groups['master'][0]
+#--------------------------------------------------------------
+#- name: Download calico manifest to the cluster.
+#  ansible.builtin.get_url:
+#    url: '{{ cni }}'
+#    dest: ~/calico.yaml
+#    mode: '0664'
+#  when: ansible_default_ipv4.address == groups['master'][0]
+#
+#- name: Install kubernetes python package
+#  ansible.builtin.pip:
+#    name: kubernetes
+#
+#- name: Apply calico manifest to the cluster.
+#  kubernetes.core.k8s:
+#    state: present
+#    src: ~/calico.yaml
+#  when: ansible_default_ipv4.address == groups['master'][0]
+#--------------------------------------------------------------
+
+- name: creating joining command
+  shell: "kubeadm token create --print-join-command"
+  register: joinCommand
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: Setting other control plane fact
+  ansible.builtin.set_fact:
+    other_control_planes:  "{{ groups['master'] | difference(groups['master'][0]) }}"
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: Setting other control plane join command
+  ansible.builtin.set_fact:
+    join_other_control_planes: "{{ joinCommand.stdout }} --control-plane --certificate-key {{ certificateKey.stdout_lines[2] }}"
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: Setting workers join command
+  ansible.builtin.set_fact:
+    join_worker: "{{ joinCommand.stdout }}"
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: copy join_other_control_planes fact to local file
+  copy:
+    content: "{{join_other_control_planes}}"
+    dest: ~/join_other_control_planes.sh
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: copy join_worker fact to local file
+  copy:
+    content: "{{join_worker}}"
+    dest: ~/join_worker.sh
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: fetch join_other_control_planes fact file
+  fetch:
+    src: ~/join_other_control_planes.sh
+    dest: ./k8s/files/join_other_control_planes.sh
+    flat: yes
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: fetch join_worker fact file
+  fetch:
+    src: ~/join_worker.sh
+    dest: ./k8s/files/join_worker.sh
+    flat: yes
+  when: ansible_default_ipv4.address == groups['master'][0]
+
+- name: joining other control-plane nodes
+  ansible.builtin.script: files/join_other_control_planes.sh
+  when: ansible_default_ipv4.address in groups['master'][1:]
+
+- name: joining worker nodes
+  ansible.builtin.script: files/join_worker.sh
+  when: ansible_default_ipv4.address in groups['worker']

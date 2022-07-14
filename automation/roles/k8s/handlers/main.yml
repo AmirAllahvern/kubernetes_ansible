@@ -1,0 +1,11 @@
+---
+# handlers file for k8s
+- name: restart containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+
+- name: reload haproxy
+  ansible.builtin.systemd:
+    name: haproxy
+    state: reloaded

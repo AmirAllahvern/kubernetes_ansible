@@ -1,0 +1,15 @@
+---
+
+- name: Update the apt package index and installs the haproxy
+  apt:
+    state: present
+    update_cache: yes
+    pkg:
+      - haproxy
+
+- name: Template a haproxy.cfg to /etc/haproxy/haproxy.cfg
+  ansible.builtin.template:
+    src: templates/haproxy.j2
+    dest: /etc/haproxy/haproxy.cfg
+  notify: reload haproxy
+

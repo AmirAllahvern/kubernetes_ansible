@@ -1,0 +1,48 @@
+---
+# tasks file for k8s
+
+- name: Update the apt package index and install packages needed to use the Kubernetes apt repository
+  apt:
+    state: present
+    update_cache: yes
+    pkg:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+
+- name: Download the Google Cloud public signing key
+  uri:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    dest: /opt/apt-key.gpg
+
+- name: add kubernetes gpg key to apt key
+  apt_key:
+    file: /opt/apt-key.gpg
+    state: present
+    keyring: /usr/share/keyrings/kubernetes-archive-keyring.gpg
+
+- name: Add the Kubernetes apt repository
+  lineinfile:
+    path: /etc/apt/sources.list.d/kubernetes.list
+    line: "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main"
+    create: yes
+    state: present
+
+
+- name: Update repositories cache and installing kubelet , kubeadm , kubectl
+  apt:
+    state: present
+    update_cache: yes
+    pkg:
+      - kubelet
+      - kubeadm
+      - kubectl
+
+- name: Prevent kubelet , kubeadm , kubectl from being upgraded
+  ansible.builtin.dpkg_selections:
+    name: '{{ item }}'
+    selection: hold
+  with_items:
+    - kubelet
+    - kubeadm
+    - kubectl

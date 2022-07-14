@@ -1,0 +1,43 @@
+---
+# tasks file for monitoring
+# https://www.ansible.com/blog/automating-helm-using-ansible
+# https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+
+#- name: Create a pv0 data directory if it does not exist
+#  ansible.builtin.file:
+#    path: /data/data-prometheus/pv0
+#    state: directory
+#    mode: '0777'
+#  when: ansible_default_ipv4.address in groups['worker'][0]
+#
+#- name: Install kubernetes python package
+#  ansible.builtin.pip:
+#    name: kubernetes
+#  when: ansible_default_ipv4.address not in groups['worker']
+#--------------------------------------------------------------------------------------------------
+#- name: Add prometheus-community chart repo
+#  kubernetes.core.helm_repository:
+#    name: prometheus-community
+#    repo_url: "https://prometheus-community.github.io/helm-charts"
+#
+#- name: Deploy prometheus,grafana,alert manager inside monitoring namespace with values
+#  kubernetes.core.helm:
+#    name: prometheus
+#    chart_ref: prometheus-community/kube-prometheus-stack
+#    release_namespace: monitoring
+#    create_namespace: true
+#    values_files: files/values.yml
+#--------------------------------------------------------------------------------------------------
+#- name: apply pv0
+#  kubernetes.core.k8s:
+#    state: present
+#    src: files/pv0.yml
+#  when: ansible_default_ipv4.address not in groups['worker']
+#
+#- name: helm repo add
+#  shell: "helm repo add {{ repo_name }} {{ repo_url }}"
+#  when: ansible_default_ipv4.address not in groups['worker']
+
+- name: apply helm
+  shell: "helm upgrade --install --kube-context {{ kube_context }} --namespace {{ namespace }} --create-namespace --values {{ values_path }} {{ release_name }} {{ chart_name }}"
+  when: ansible_default_ipv4.address not in groups['worker']

@@ -1,0 +1,25 @@
+---
+
+- name: prerequisites setup
+  hosts: all
+  tasks:
+    - import_role:
+        name: prepare_vms
+
+- name: install k8s
+  hosts: all
+  tasks:
+    - import_role:
+        name: k8s
+
+- name: install database
+  hosts: localhost,worker
+  tasks:
+    - import_role:
+        name: database
+
+- name: install monitoring
+  hosts: localhost,worker
+  tasks:
+    - import_role:
+        name: monitoring

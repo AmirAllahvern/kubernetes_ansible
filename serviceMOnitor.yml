@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mariadb-cluster
+  namespace: monitoring
+  labels:
+    app: mariadb-cluster
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: mariadb-galera
+      app.kubernetes.io/name: mariadb-galera    
+  namespaceSelector:
+    matchNames:
+      - "database"  
+  endpoints:
+  - port: metrics

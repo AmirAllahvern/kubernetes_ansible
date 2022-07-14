@@ -1,0 +1,81 @@
+---
+
+- name: Create containerd config file
+  file:
+    path: "/etc/modules-load.d/containerd.conf"
+    state: touch
+
+- name: Add conf for containerd
+  blockinfile:
+    path: "/etc/modules-load.d/containerd.conf"
+    block: |
+      overlay
+      br_netfilter
+
+- name: Load modules
+  community.general.modprobe:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - overlay
+    - br_netfilter
+
+- name: Set ip forwarding on in /proc and in the sysctl file and reload if necessary
+  ansible.posix.sysctl:
+    name: '{{ item }}'
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+  with_items:
+    - net.ipv4.ip_forward
+    - net.bridge.bridge-nf-call-ip6tables
+    - net.bridge.bridge-nf-call-iptables
+    - net.ipv4.conf.all.forwarding
+
+- name: Update the apt package index and install required packages
+  apt:
+    state: present
+    update_cache: yes
+    pkg:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - gnupg2
+
+- name: Add docker signing key
+  ansible.builtin.apt_key:
+    url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+    state: present
+
+- name: Add repository into sources list
+  ansible.builtin.apt_repository:
+    repo: "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+    state: present
+    filename: docker
+
+- name: Update the apt package index and install containerd
+  apt:
+    state: present
+    update_cache: yes
+    pkg:
+      - containerd
+
+- name: Create containerd directory
+  file:
+    path: /etc/containerd
+    state: directory
+
+- name: Get defaults from containerd.
+  command: containerd config default
+  changed_when: false
+  register: containerd_config_default
+
+- name: Prepare containerd/config.toml from default config
+  copy:
+    dest: /etc/containerd/config.toml
+    content: '{{ containerd_config_default.stdout }}'
+  notify: restart containerd
+
+

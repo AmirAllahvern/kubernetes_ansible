@@ -1,0 +1,10 @@
+---
+
+- name: setting up the proxy
+  import_tasks: proxy.yml
+
+- name: disabling swap
+  import_tasks: swap.yml
+
+#- name: adding external disk
+#  import_tasks: mount_disk.yml

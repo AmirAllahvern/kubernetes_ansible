@@ -1,0 +1,10 @@
+---
+# vars file for prepare_vms
+
+disk: /dev/sdb
+destination: /var/lib/elasticsearch
+filesystem: xfs
+
+# proxy setting
+# proxy format : http://ip:port
+proxy: http://195.201.23.73:3128

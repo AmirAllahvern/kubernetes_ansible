@@ -1,0 +1,4 @@
+---
+# vars file for k8s
+
+cni: "https://docs.projectcalico.org/manifests/calico.yaml"

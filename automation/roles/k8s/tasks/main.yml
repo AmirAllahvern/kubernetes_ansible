@@ -1,0 +1,17 @@
+---
+
+- name: Installing haproxy as load balancer
+  import_tasks: loadbalancer/main.yml
+  when: ansible_default_ipv4.address in groups['loadbalancer']
+
+- name: Installing containerd as container runtime interface
+  import_tasks: cri/main.yml
+  when: ansible_default_ipv4.address in groups['master'] or ansible_default_ipv4.address in groups['worker']
+
+- name: Installing kubeadm,kubelet,kubectl
+  import_tasks: kubeadm/main.yml
+  when: ansible_default_ipv4.address in groups['master'] or ansible_default_ipv4.address in groups['worker']
+
+- name: init k8s cluster
+  import_tasks: init_k8s/main.yml
+  when: ansible_default_ipv4.address in groups['master'] or ansible_default_ipv4.address in groups['worker']

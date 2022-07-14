@@ -1,0 +1,20 @@
+---
+- name: removing previous proxy file if exists
+  file:
+    path: /etc/apt/apt.conf.d/proxy.conf
+    state: absent
+
+- name: create proxy file
+  file:
+    path: /etc/apt/apt.conf.d/proxy.conf
+    state: touch
+
+- name: adding new proxy to proxy.conf
+  lineinfile:
+    path: /etc/apt/apt.conf.d/proxy.conf
+    line: '{{ item }}'
+    create: yes
+    state: present
+  with_items:
+    - "Acquire::http::Proxy \"{{proxy}}\";"
+    - "Acquire::https::Proxy \"{{proxy}}\";"

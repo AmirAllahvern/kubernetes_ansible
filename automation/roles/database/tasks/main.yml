@@ -1,0 +1,80 @@
+---
+# tasks file for database
+# https://github.com/bitnami/charts/blob/master/bitnami/mariadb-galera/values.yaml
+- name: Create a pv0 data directory if it does not exist
+  ansible.builtin.file:
+    path: /data/data-mariadb-galera/pv0
+    state: directory
+    mode: '0777'
+  when: ansible_default_ipv4.address in groups['worker'][0]
+
+- name: Create a pv1 data directory if it does not exist
+  ansible.builtin.file:
+    path: /data/data-mariadb-galera/pv1
+    state: directory
+    mode: '0777'
+  when: ansible_default_ipv4.address in groups['worker'][0]
+
+- name: Create a pv2 data directory if it does not exist
+  ansible.builtin.file:
+    path: /data/data-mariadb-galera/pv2
+    state: directory
+    mode: '0777'
+  when: ansible_default_ipv4.address in groups['worker'][0]
+
+- name: Install kubernetes python package
+  ansible.builtin.pip:
+    name: kubernetes
+
+#- name: Add bitnami chart repo
+#  kubernetes.core.helm_repository:
+#    name: bitnami
+#    repo_url: "https://charts.bitnami.com/bitnami"
+#
+#- name: Deploy MariaDB Galera cluster inside database namespace with values
+#  kubernetes.core.helm:
+#    name: mariadb-galera
+#    chart_ref: bitnami/mariadb-galera
+#    release_namespace: database
+#    create_namespace: true
+#    release_state: present
+#    values_files: files/values.yml
+#    context: arvan
+
+- name: apply pv0
+  kubernetes.core.k8s:
+    state: present
+    src: files/pv0.yml
+  when: ansible_default_ipv4.address not in groups['worker']
+
+- name: apply pv1
+  kubernetes.core.k8s:
+    state: present
+    src: files/pv1.yml
+  when: ansible_default_ipv4.address not in groups['worker']
+
+- name: apply pv2
+  kubernetes.core.k8s:
+    state: present
+    src: files/pv2.yml
+  when: ansible_default_ipv4.address not in groups['worker']
+
+#- name: apply pv0
+#  shell: "kubectl --context arvan apply -f roles/database/files/pv0.yml"
+#  when: ansible_default_ipv4.address not in groups['worker']
+#
+#- name: apply pv1
+#  shell: "kubectl --context arvan apply -f roles/database/files/pv1.yml"
+#  when: ansible_default_ipv4.address not in groups['worker']
+#
+#- name: apply pv2
+#  shell: "kubectl --context arvan apply -f roles/database/files/pv2.yml"
+#  when: ansible_default_ipv4.address not in groups['worker']
+
+- name: helm repo add
+  shell: "helm repo add {{ repo_name }} {{ repo_url }}"
+  when: ansible_default_ipv4.address not in groups['worker']
+
+- name: apply helm
+  shell: "helm upgrade --install --kube-context {{ kube_context }} --namespace {{ namespace }} --create-namespace --values {{ values_path }} {{ release_name }} {{ chart_name}}"
+  when: ansible_default_ipv4.address not in groups['worker']
